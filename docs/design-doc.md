@@ -7,7 +7,7 @@
 
 ## 1. Project Overview
 
-**SafeHaven** is a desktop chatbot that provides empathetic conversational support while actively monitoring for signs of emotional distress or crisis. It uses an API-based LLM (OpenAI or similar) for response generation, layered behind a safety pipeline that detects emotion, evaluates risk, and filters output.
+**SafeHaven** is a desktop chatbot that provides empathetic conversational support while actively monitoring for signs of emotional distress or crisis. It uses an API-based LLM (Anthropic Claude) for response generation, layered behind a safety pipeline that detects emotion, evaluates risk, and filters output.
 
 ### Scope
 
@@ -15,7 +15,7 @@
 |----------|--------------|
 | English-language text chat | Multilingual support |
 | Desktop GUI (Tkinter) | Web or mobile deployment |
-| API-based LLM (OpenAI / Anthropic) | Local/fine-tuned models |
+| API-based LLM (Anthropic Claude) | Local/fine-tuned models |
 | Keyword + heuristic risk detection | Clinical-grade NLP |
 | SQLite conversation storage | Cloud database / auth |
 | Crisis resource display | Actual crisis intervention |
@@ -151,13 +151,12 @@ class ConversationContext:
     system_prompt: str = ""
 
     def to_llm_messages(self) -> list[dict]:
-        """Format for OpenAI-style API calls."""
-        msgs = []
-        if self.system_prompt:
-            msgs.append({"role": "system", "content": self.system_prompt})
-        for m in self.recent_messages:
-            msgs.append({"role": m.role, "content": m.content})
-        return msgs
+        """Format as user/assistant message dicts for the Claude API.
+
+        The system prompt is passed separately via the API's ``system``
+        parameter; see ``ClaudeResponseGenerator.generate``.
+        """
+        return [{"role": m.role, "content": m.content} for m in self.recent_messages]
 ```
 
 ---
@@ -321,7 +320,7 @@ safehaven/
 │   └── output_filter.py     # OutputFilter impl
 ├── llm/
 │   ├── __init__.py
-│   └── openai_generator.py  # ResponseGenerator impl
+│   └── claude_generator.py  # ResponseGenerator impl (Anthropic Claude)
 ├── controller/
 │   ├── __init__.py
 │   └── chat_controller.py   # ChatController (orchestrator)
@@ -364,7 +363,7 @@ safehaven/
 | 2 | Write `emotion_detector.py` — keyword-based stub | `detect("I feel great")` → `HAPPY`, `detect("I'm so worried")` → `ANXIOUS` |
 | 3 | Write `risk_evaluator.py` — keyword list check + threshold | Returns `HIGH` for any crisis keyword match |
 | 4 | Write `output_filter.py` — regex blocklist | Strips "you should just…" patterns, returns cleaned text |
-| 5 | Write `openai_generator.py` — call API, return text | Returns a string for a simple prompt (manual test with API key) |
+| 5 | Write `claude_generator.py` — call Claude API, return text | Returns a string for a simple prompt (manual test with API key) |
 | 6 | Build basic `chat_window.py` — input box + message list | Window opens, text appears on send button click |
 
 ### Week 3 — Module Logic
@@ -383,7 +382,7 @@ safehaven/
 | # | Task | Done When |
 |---|------|-----------|
 | 1 | Wire `chat_window.py` → `ChatController` | Typed message flows through pipeline and response appears |
-| 2 | Wire `ChatController` → `openai_generator.py` (real API) | Real LLM response appears in chat window |
+| 2 | Wire `ChatController` → `claude_generator.py` (real API) | Real LLM response appears in chat window |
 | 3 | Wire crisis path: `handle_message()` returns `None` → show modal | Typing "I want to end it all" shows crisis modal |
 | 4 | End-to-end test: normal conversation (3 turns) | Passes in CI (with mocked LLM) |
 | 5 | End-to-end test: escalation → crisis | Passes in CI (with mocked LLM) |
@@ -499,7 +498,7 @@ User:  "I don't want to be here anymore. I want to end it all."
 | `EmotionDetector.detect()` | `EmotionResult` | `UserState` constructor | `EmotionResult` | ✓ |
 | `UserState` | `UserState` | `RiskEvaluator.evaluate()` | `UserState` | ✓ |
 | `ConversationMemory.get_recent_messages()` | `list[Message]` | `ConversationContext` | `list[Message]` | ✓ |
-| `ConversationContext.to_llm_messages()` | `list[dict]` | OpenAI API | `list[dict]` | ✓ |
+| `ConversationContext.to_llm_messages()` | `list[dict]` | Claude API | `list[dict]` | ✓ |
 | `ResponseGenerator.generate()` | `str` | `OutputFilter.validate()` | `str` | ✓ |
 | `RiskEvaluator.evaluate()` | `RiskLevel` | `OutputFilter.validate()` | `RiskLevel` | ✓ |
 | `ChatController.handle_message()` | `str \| None` | UI callback | `str \| None` | ✓ |

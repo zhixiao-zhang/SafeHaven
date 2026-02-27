@@ -4,7 +4,7 @@
 
 ## Project
 
-SafeHaven is a safety-aware mental health chatbot (Python, Tkinter, OpenAI API). Course project — not for production use.
+SafeHaven is a safety-aware mental health chatbot (Python, Tkinter, Anthropic Claude API). Course project — not for production use.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ safehaven/
 ├── ui/                  # Tkinter chat window + crisis modal
 ├── memory/              # SQLite ConversationMemory implementation
 ├── safety/              # EmotionDetector, RiskEvaluator, OutputFilter
-├── llm/                 # ResponseGenerator (OpenAI API wrapper)
+├── llm/                 # ResponseGenerator (Anthropic Claude API wrapper)
 ├── controller/          # ChatController (orchestrator)
 ├── tests/               # pytest tests
 └── resources/           # crisis_keywords.txt, crisis_hotlines.json

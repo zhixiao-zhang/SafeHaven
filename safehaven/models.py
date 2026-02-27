@@ -50,10 +50,9 @@ class ConversationContext:
     system_prompt: str = ""
 
     def to_llm_messages(self) -> list[dict[str, str]]:
-        """Format for OpenAI-style API calls."""
-        msgs: list[dict[str, str]] = []
-        if self.system_prompt:
-            msgs.append({"role": "system", "content": self.system_prompt})
-        for m in self.recent_messages:
-            msgs.append({"role": m.role, "content": m.content})
-        return msgs
+        """Format as user/assistant message dicts for the Claude API.
+
+        The system prompt is passed separately via the API's ``system``
+        parameter; see ``ClaudeResponseGenerator.generate``.
+        """
+        return [{"role": m.role, "content": m.content} for m in self.recent_messages]

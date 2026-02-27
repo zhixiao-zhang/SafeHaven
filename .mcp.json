@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "sqlite": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-sqlite",
+        "--db-path",
+        "./safehaven.db"
+      ],
+      "env": {}
+    }
+  }
+}
