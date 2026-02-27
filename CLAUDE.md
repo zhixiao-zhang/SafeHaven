@@ -18,6 +18,10 @@ Pipeline: **UI → EmotionDetector → RiskEvaluator → ResponseGenerator → O
 - Tests: `pytest`, always mock the LLM
 - Crisis keywords in `resources/crisis_keywords.txt` (one per line)
 
+## MCP Servers
+
+- **SQLite** (project, `.mcp.json`): queries `safehaven.db` — the conversation storage database
+
 ## Gotchas
 
 - Never call the LLM directly from UI code — always go through `ChatController`
