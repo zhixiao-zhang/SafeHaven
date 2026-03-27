@@ -420,19 +420,20 @@ CLAUDE.md                            # Shared LLM context for team (repo root)
 | **Data & Tests** | Quoc & Patrick | Keyword lists, unit tests for new modules, demo script, adversarial filter tests |
 | **Docs** | Quoc | UML diagrams, report assembly, presentation slides |
 
-> Backend A and B can work in parallel once they agree on Day 1 that `fsm_state` is passed as the plain string values defined in `UserState` (`"calm"`, `"concerned"`, `"elevated"`, `"crisis"`). Backend C picks up wiring once A and B are done. Frontend, Data & Tests, and Docs are fully independent from Day 1.
+> All three backend members work in parallel from Day 1. A and B agree upfront on the `fsm_state` string contract (`"calm"`, `"concerned"`, `"elevated"`, `"crisis"`). C starts by scaffolding integration tests against mocks and wires the controller once A and B finish their stubs. Frontend, Data & Tests, and Docs are fully independent from Day 1.
 
 ---
 
 ### Dependency / Critical Path
 
 ```
-Backend A: FSMRiskEvaluator + LanguageDetector
-Backend B: Strategies + StrategySelector        (parallel with A)
-                ↓ (both done)
-Backend C: Wire ChatController                  (needs A + B)
+Backend A: FSMRiskEvaluator + LanguageDetector  ─┐
+Backend B: Strategies + StrategySelector         ─┤ (all parallel, Week 1)
+Backend C: Test scaffolding (mocked)             ─┘
+                ↓ (A + B done)
+Backend C: Wire ChatController
                 ↓
-Backend C: Integration tests                    (needs wired controller)
+Backend C: Integration tests (real impls)
 ```
 
 Frontend → InsightsScreen depends on `ConversationMemory` (already done) — no backend dependency.
@@ -461,7 +462,8 @@ Frontend → InsightsScreen depends on `ConversationMemory` (already done) — n
 
 | # | Task | Done When |
 |---|------|-----------|
-| C1 | Wire `ChatController`: inject `LanguageDetector` + `FSMRiskEvaluator` + `StrategySelector`; set language on `UserState`; call `StrategySelector` to build system prompt | `test_controller.py` passes with all 3 demo scenarios end-to-end (mocked LLM) |
+| C1 | Set up integration test scaffolding — stub out all 3 demo scenario tests in `test_controller.py` with mocked LLM, emotion detector, and risk evaluator | Test file runs (skipped/xfail) without errors; structure ready to fill in once A + B are done |
+| C2 | Wire `ChatController`: inject `LanguageDetector` + `FSMRiskEvaluator` + `StrategySelector`; set language on `UserState`; call `StrategySelector` to build system prompt | `test_controller.py` passes with all 3 demo scenarios end-to-end (mocked LLM) |
 
 #### Frontend
 
