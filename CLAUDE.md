@@ -1,5 +1,9 @@
 # SafeHaven — CLAUDE.md
 
+## Commit Style
+
+Never add `Co-Authored-By` or any AI attribution lines to commit messages in this repo.
+
 ## Project
 
 SafeHaven is a safety-aware mental health chatbot (Python, Anthropic Claude API). Course project — not for production use. Supports English and Arabic.
