@@ -395,7 +395,7 @@ safehaven/
 │   ├── crisis_keywords.txt      # English crisis keywords
 │   ├── crisis_keywords_ar.txt   # Arabic crisis keywords
 │   ├── emotion_keywords_ar.json # Arabic emotion word sets
-│   └── safehaven.kv             # Kivy layout file
+│   └── safehaven.kv             # Unused Kivy DSL skeleton (UI is built in Python)
 CLAUDE.md                            # Shared LLM context for team (repo root)
 ```
 

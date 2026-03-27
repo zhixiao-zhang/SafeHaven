@@ -97,7 +97,7 @@ safehaven/
 │   ├── crisis_keywords_ar.txt   # Arabic crisis keywords
 │   ├── crisis_hotlines.json     # Country → hotline mapping
 │   ├── emotion_keywords_ar.json # Arabic emotion word sets
-│   └── safehaven.kv             # Kivy layout file
+│   └── safehaven.kv             # Unused Kivy DSL skeleton (UI is built in Python)
 ├── logging_config.py        # Structured logging setup
 ├── interfaces.py            # Protocol definitions
 └── models.py                # Dataclass models
