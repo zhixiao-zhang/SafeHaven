@@ -50,7 +50,9 @@ class ChatController:
     def fsm_state(self) -> str:
         """Current FSM state label — used by UI for color indicator."""
         if hasattr(self.evaluator, "state"):
-            return self.evaluator.state  # type: ignore[attr-defined]
+            state = getattr(self.evaluator, "state")
+            if isinstance(state, str):
+                return state
         return "calm"
 
     @property
@@ -63,23 +65,38 @@ class ChatController:
 
         Returns the assistant response, or None if crisis path activated.
         """
+        if not user_text.strip():
+            return "Please enter a message so I can respond."
+
         # 1. Detect language
         language = "en"
         if self.language_detector is not None:
-            language = self.language_detector.detect_language(user_text)
+            try:
+                language = self.language_detector.detect_language(user_text)
+            except Exception:
+                language = "en"
 
         # 2. Detect emotion
-        emotion = self.detector.detect(user_text)
+        try:
+            emotion = self.detector.detect(user_text)
+        except Exception:
+            return "Sorry, I couldn't analyze that message. Please try again."
         self._last_emotion = emotion.label
 
         # 3. Store user message
         user_msg = Message(
             role="user", content=user_text, emotion=emotion.label, language=language
         )
-        self.memory.store_message(user_msg)
+        try:
+            self.memory.store_message(user_msg)
+        except Exception:
+            return "Sorry, I'm having trouble saving this conversation right now. Please try again."
 
         # 4. Build user state (include escalation history from memory)
-        recent = self.memory.get_recent_messages()
+        try:
+            recent = self.memory.get_recent_messages()
+        except Exception:
+            return "Sorry, I'm having trouble loading the conversation history right now. Please try again."
         escalation_history = [
             m.risk_level for m in recent if m.role == "user"
         ]
@@ -93,7 +110,10 @@ class ChatController:
         )
 
         # 5. Evaluate risk
-        risk = self.evaluator.evaluate(state)
+        try:
+            risk = self.evaluator.evaluate(state)
+        except Exception:
+            return "Sorry, I couldn't evaluate that message safely. Please try again."
 
         # 6. Crisis path
         if risk == RiskLevel.HIGH:
@@ -103,13 +123,16 @@ class ChatController:
         system_prompt = ""
         strategy_name = ""
         if self.strategy_selector is not None:
-            strategy = self.strategy_selector.select(risk, self.fsm_state)
-            strategy_name = type(strategy).__name__
-            context_for_prompt = ConversationContext(
-                recent_messages=recent,
-                user_state=state,
-            )
-            system_prompt = strategy.build_system_prompt(context_for_prompt)
+            try:
+                strategy = self.strategy_selector.select(risk, self.fsm_state)
+                strategy_name = type(strategy).__name__
+                context_for_prompt = ConversationContext(
+                    recent_messages=recent,
+                    user_state=state,
+                )
+                system_prompt = strategy.build_system_prompt(context_for_prompt)
+            except Exception:
+                return "Sorry, I couldn't prepare a safe response strategy. Please try again."
 
         # 8. Generate response
         context = ConversationContext(
@@ -118,27 +141,42 @@ class ChatController:
             system_prompt=system_prompt,
             strategy_name=strategy_name,
         )
-        raw_response = self.generator.generate(context)
+        try:
+            raw_response = self.generator.generate(context)
+        except TimeoutError:
+            return "Sorry, the response service timed out. Please try again."
+        except Exception:
+            return "Sorry, I couldn't generate a response right now. Please try again."
 
         # 9. Filter output
-        safe_response = self.output_filter.validate(raw_response, risk)
+        try:
+            safe_response = self.output_filter.validate(raw_response, risk)
+        except Exception:
+            return "Sorry, I couldn't validate the response safely. Please try again."
 
         # 10. Post-process via strategy
         if self.strategy_selector is not None:
-            strategy = self.strategy_selector.select(risk, self.fsm_state)
-            safe_response = strategy.post_process(safe_response)
+            try:
+                strategy = self.strategy_selector.select(risk, self.fsm_state)
+                safe_response = strategy.post_process(safe_response)
+            except Exception:
+                return "Sorry, I couldn't finalize the response safely. Please try again."
 
         # 11. Store assistant message
         assistant_msg = Message(
             role="assistant", content=safe_response, risk_level=risk
         )
-        self.memory.store_message(assistant_msg)
+        try:
+            self.memory.store_message(assistant_msg)
+        except Exception:
+            return "Sorry, I'm having trouble saving this conversation right now. Please try again."
 
         return safe_response
 
     def clear(self) -> None:
         """Reset session state — clears memory and FSM."""
         self.memory.clear()
-        if hasattr(self.evaluator, "clear"):
-            self.evaluator.clear()  # type: ignore[attr-defined]
+        clear_fn = getattr(self.evaluator, "clear", None)
+        if callable(clear_fn):
+            clear_fn()
         self._last_emotion = None

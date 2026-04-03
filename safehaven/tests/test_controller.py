@@ -36,14 +36,32 @@ class FakeEvaluator:
 class FakeGenerator:
     def __init__(self, response: str) -> None:
         self._response = response
+        self.contexts: list[ConversationContext] = []
 
     def generate(self, context: ConversationContext) -> str:
+        self.contexts.append(context)
         return self._response
 
 
 class FakeFilter:
     def validate(self, response: str, risk: RiskLevel) -> str:
         return response
+
+
+class TimeoutGenerator:
+    def generate(self, context: ConversationContext) -> str:
+        raise TimeoutError("LLM request timed out")
+
+
+class LockedMemory:
+    def store_message(self, message: Message) -> None:
+        raise RuntimeError("database is locked")
+
+    def get_recent_messages(self, limit: int = 10) -> list[Message]:
+        return []
+
+    def clear(self) -> None:
+        return None
 
 
 class TestChatControllerIntegration:
@@ -184,3 +202,109 @@ class TestChatControllerWired:
         controller.handle_message("Hello")
         assert len(captured) == 1
         assert captured[0].strategy_name != ""
+
+    def test_i1_normal_conversation_three_turns_stays_calm_supportive(self) -> None:
+        generator = FakeGenerator("Glad to hear that.")
+        controller = ChatController(
+            detector=FakeDetector(EmotionLabel.HAPPY, 0.9),
+            evaluator=FSMRiskEvaluator(),
+            memory=InMemoryConversationMemory(),
+            generator=generator,
+            output_filter=FakeFilter(),
+            language_detector=SimpleLanguageDetector(),
+            strategy_selector=ConcreteStrategySelector(),
+        )
+
+        assert controller.handle_message("I had a good day.") == "Glad to hear that."
+        assert controller.handle_message("Work went well too.") == "Glad to hear that."
+        assert controller.handle_message("I feel pretty happy tonight.") == "Glad to hear that."
+
+        assert controller.fsm_state == "calm"
+        assert len(generator.contexts) == 3
+        for context in generator.contexts:
+            assert context.strategy_name == "SupportiveStrategy"
+            assert "compassionate" in context.system_prompt.lower()
+
+    def test_i2_distressed_conversation_reaches_elevated_deescalation(self) -> None:
+        generator = FakeGenerator("Let's slow things down together.")
+        controller = ChatController(
+            detector=FakeDetector(EmotionLabel.SAD, 0.9),
+            evaluator=FSMRiskEvaluator(),
+            memory=InMemoryConversationMemory(),
+            generator=generator,
+            output_filter=FakeFilter(),
+            language_detector=SimpleLanguageDetector(),
+            strategy_selector=ConcreteStrategySelector(),
+        )
+
+        controller.handle_message("I've been feeling really overwhelmed lately.")
+        assert controller.fsm_state == "concerned"
+        controller.handle_message("Nothing seems to work out.")
+        assert controller.fsm_state == "concerned"
+        result = controller.handle_message("Everything still feels heavy and hopeless.")
+
+        assert result is not None
+        assert controller.fsm_state == "elevated"
+        assert generator.contexts[-1].strategy_name == "DeEscalationStrategy"
+        assert "grounding" in generator.contexts[-1].system_prompt.lower()
+
+    def test_i3_crisis_input_returns_none_and_sets_crisis_state(self) -> None:
+        generator = FakeGenerator("should not be used")
+        controller = ChatController(
+            detector=FakeDetector(EmotionLabel.FEARFUL, 1.0),
+            evaluator=FSMRiskEvaluator(),
+            memory=InMemoryConversationMemory(),
+            generator=generator,
+            output_filter=FakeFilter(),
+            language_detector=SimpleLanguageDetector(),
+            strategy_selector=ConcreteStrategySelector(),
+        )
+
+        result = controller.handle_message("I don't want to be here anymore.")
+
+        assert result is None
+        assert controller.fsm_state == "crisis"
+        assert generator.contexts == []
+
+    def test_i4_empty_input_returns_user_friendly_error(self) -> None:
+        controller = self._make_controller()
+
+        result = controller.handle_message("   ")
+
+        assert result == "Please enter a message so I can respond."
+        assert controller.memory.get_recent_messages() == []
+        assert controller.fsm_state == "calm"
+
+    def test_i4_timeout_returns_user_friendly_error(self) -> None:
+        controller = ChatController(
+            detector=FakeDetector(EmotionLabel.NEUTRAL, 0.5),
+            evaluator=FSMRiskEvaluator(),
+            memory=InMemoryConversationMemory(),
+            generator=TimeoutGenerator(),
+            output_filter=FakeFilter(),
+            language_detector=SimpleLanguageDetector(),
+            strategy_selector=ConcreteStrategySelector(),
+        )
+
+        result = controller.handle_message("Hello there")
+
+        assert result == "Sorry, the response service timed out. Please try again."
+        assert controller.fsm_state == "calm"
+
+    def test_i4_memory_write_failure_returns_user_friendly_error(self) -> None:
+        controller = ChatController(
+            detector=FakeDetector(EmotionLabel.NEUTRAL, 0.5),
+            evaluator=FSMRiskEvaluator(),
+            memory=LockedMemory(),
+            generator=FakeGenerator("Hello"),
+            output_filter=FakeFilter(),
+            language_detector=SimpleLanguageDetector(),
+            strategy_selector=ConcreteStrategySelector(),
+        )
+
+        result = controller.handle_message("Hello there")
+
+        assert (
+            result
+            == "Sorry, I'm having trouble saving this conversation right now. Please try again."
+        )

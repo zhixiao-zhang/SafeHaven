@@ -194,9 +194,9 @@ class InsightsScreen(Screen):
             bar = Widget(size_hint=(0, None), height=14)
             with bar.canvas:
                 Color(*_hex_to_rgba(EMOTION_COLORS.get(emotion, "#888888")))
-                bar._rect = Rectangle(size=bar.size, pos=bar.pos)  # type: ignore[attr-defined]
-            bar.bind(size=lambda inst, v: setattr(inst._rect, "size", v))  # type: ignore[attr-defined]
-            bar.bind(pos=lambda inst, v: setattr(inst._rect, "pos", v))  # type: ignore[attr-defined]
+                setattr(bar, "_rect", Rectangle(size=bar.size, pos=bar.pos))
+            bar.bind(size=lambda inst, v: setattr(getattr(inst, "_rect"), "size", v))
+            bar.bind(pos=lambda inst, v: setattr(getattr(inst, "_rect"), "pos", v))
             bar_bg.add_widget(bar)
             self._emotion_bars[emotion.value] = bar
             self._count_lbl = Label(

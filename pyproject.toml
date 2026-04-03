@@ -25,7 +25,7 @@ strict = true
 packages = ["safehaven"]
 
 [[tool.mypy.overrides]]
-module = ["kivy", "kivy.*"]
+module = ["kivy.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
