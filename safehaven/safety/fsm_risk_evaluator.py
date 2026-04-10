@@ -24,7 +24,7 @@ _STATE_TO_RISK: dict[str, RiskLevel] = {
     "crisis": RiskLevel.HIGH,
 }
 
-_NEGATIVE_EMOTIONS = {EmotionLabel.SAD, EmotionLabel.ANXIOUS, EmotionLabel.ANGRY}
+_NEGATIVE_EMOTIONS = {EmotionLabel.SAD, EmotionLabel.ANXIOUS, EmotionLabel.ANGRY, EmotionLabel.FEARFUL}
 
 
 class FSMRiskEvaluator:

@@ -103,6 +103,18 @@ class TestFSMRiskEvaluator:
         assert evaluator.state != "crisis"
         assert result != RiskLevel.HIGH
 
+    def test_fearful_low_confidence_increments_negative_counter(self) -> None:
+        """FEARFUL below 0.9 must still count as negative and increment the
+        consecutive-negative counter (not reset it).  Regression test for the
+        bug where FEARFUL was missing from _NEGATIVE_EMOTIONS."""
+        evaluator = FSMRiskEvaluator()
+        evaluator.evaluate(_make_state(EmotionLabel.SAD, 0.8))      # counter=1
+        evaluator.evaluate(_make_state(EmotionLabel.FEARFUL, 0.7))  # counter=2 (not 0!)
+        result = evaluator.evaluate(_make_state(EmotionLabel.ANXIOUS, 0.8))  # counter=3 → elevated
+        assert evaluator._consecutive_negative == 3
+        assert evaluator.state == "elevated"
+        assert result == RiskLevel.MEDIUM
+
     # --- Terminal CRISIS state ---
 
     def test_crisis_state_does_not_downgrade_on_happy(self) -> None:
