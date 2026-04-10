@@ -444,35 +444,35 @@ Frontend → InsightsScreen depends on `ConversationMemory` (already done) — n
 
 #### Backend C (+ A and B as needed)
 
-| # | Task | Done When |
-|---|------|-----------|
-| I1 | End-to-end integration test: Scenario 1 (normal conversation, 3 turns, LOW risk) | Passes with mocked LLM; FSM stays CALM; SupportiveStrategy prompt used |
-| I2 | End-to-end integration test: Scenario 2 (distressed user, MEDIUM risk, CONCERNED→ELEVATED) | Passes with mocked LLM; FSM advances; DeEscalationStrategy prompt used |
-| I3 | End-to-end integration test: Scenario 3 (crisis detection, HIGH risk) | `handle_message()` returns `None`; UI navigates to crisis screen |
-| I4 | Error handling: API timeout, empty input, SQLite lock | App shows user-friendly error message; no crash or unhandled exception |
+| # | Task | Status |
+|---|------|--------|
+| I1 | End-to-end integration test: Scenario 1 (normal conversation, 3 turns, LOW risk) | ✅ Done — `test_integration.py` |
+| I2 | End-to-end integration test: Scenario 2 (distressed user, MEDIUM risk, CONCERNED→ELEVATED) | ✅ Done — `test_integration.py` |
+| I3 | End-to-end integration test: Scenario 3 (crisis detection, HIGH risk) | ✅ Done — `test_integration.py` |
+| I4 | Error handling: API timeout, empty input, SQLite lock | ✅ Done — `test_integration.py` |
 
 #### Frontend
 
-| # | Task | Done When |
-|---|------|-----------|
+| # | Task | Status |
+|---|------|--------|
 | F4 | ~~"thinking…" indicator~~ ✅ done · Timestamps on messages | Timestamps visible on each bubble |
 | F5 | Manual smoke test: run all 3 demo scenarios live with real API key | Screenshots captured for `docs/demo/` |
 
 #### Data & Tests
 
-| # | Task | Done When |
-|---|------|-----------|
-| D6 | Write demo script — exact user inputs and expected outputs for all 3 scenarios | Markdown file committed to `docs/demo-script.md` |
-| D7 | Adversarial output filter tests — 5+ LLM responses containing harmful patterns | `test_filter.py` strips all harmful patterns; all pass |
-| D8 | `mypy --strict safehaven/` passes with zero errors after all new code | CI check green |
+| # | Task | Status |
+|---|------|--------|
+| D6 | Write demo script — exact user inputs and expected outputs for all 3 scenarios | ✅ Done — `docs/demo/demo-script.md` |
+| D7 | Adversarial output filter tests — 5+ LLM responses containing harmful patterns | ✅ Done — `test_adversarial_filter.py`, 17 tests passing |
+| D8 | `mypy --strict safehaven/` passes with zero errors after all new code | ✅ Done — 0 errors, 43 source files |
 
 #### Docs
 
-| # | Task | Done When |
-|---|------|-----------|
+| # | Task | Status |
+|---|------|--------|
 | W1 | Final UML class diagram (PlantUML or draw.io) — reflects actual wired code | PNG/SVG in `docs/`; all 6 design patterns annotated |
 | W2 | Sequence diagram for `handle_message()` through the full target pipeline | PNG/SVG in `docs/` |
-| W3 | Design patterns writeup — 1 page covering Strategy, FSM, Pipeline, Observer, Repository, DI | Committed to `docs/report/` |
+| W3 | Design patterns writeup — 1 page covering Strategy, FSM, Pipeline, Observer, Repository, DI | ✅ Done — `docs/report/design-patterns.md` |
 | W4 | Individual report sections — each person writes ~1 page on their contribution | Sections in `docs/report/` |
 | W5 | Presentation slides (5–8 slides): architecture, patterns, demo, learnings | Dry-run rehearsal done; everyone knows their part |
 | W6 | Final report assembly + proofread | Single PDF ready for submission |
